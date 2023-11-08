@@ -1,81 +1,134 @@
-# import everything
-from flask import Flask, request
+from flask import Flask, request, jsonify
+from telegram.ext import Application, CommandHandler, ConversationHandler, MessageHandler, filters
+from telegram import Update, ReplyKeyboardRemove, ReplyKeyboardMarkup, ParseMode, InputTextMessageContent, InlineQueryResultArticle
+from uuid import uuid4
+import logging
+from html import escape
 import telegram
-import re
-from telebot.credentials import bot_token, bot_user_name,URL
-import asyncio 
-import requests
 
-
-global bot
-global TOKEN
-TOKEN = bot_token
-
-my_request_params = telegram.request.HTTPXRequest(connection_pool_size=20,connect_timeout=20,pool_timeout=30)
-
-bot = telegram.Bot(token=TOKEN,request=my_request_params)
-
-
-
-# start the flask app
 app = Flask(__name__)
 
+# Enable logging
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+)
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
-@app.route('/', methods=['POST'])
-async def respond():
-   # retrieve the message in JSON and then transform it to Telegram object
+logger = logging.getLogger(__name__)
 
-   update = telegram.Update.de_json(request.get_json(force=True), bot)
+GENDER, PHOTO, LOCATION, BIO = range(4)
 
-   chat_id = update.message.chat.id
-   msg_id = update.message.message_id
-
-   # Telegram understands UTF-8, so encode text for unicode compatibility
-   text = update.message.text.encode('utf-8').decode()
-   # for debugging purposes only
-   print("got text message :", text)
-   # the first time you chat with the bot AKA the welcoming message
-   if text == "/start":
-       # print the welcoming message
-       bot_welcome = """
-       Welcome to coolAvatar bot, the bot is using the service from http://avatars.adorable.io/ to generate cool looking avatars based on the name you enter so please enter a name and the bot will reply with an avatar for your name.
-       """
-       # send the welcoming message
-       await bot.sendMessage(chat_id=chat_id, text=bot_welcome, reply_to_message_id=msg_id,read_timeout=10, write_timeout=10, connect_timeout=10, pool_timeout=10)
+bot = telegram.Bot(token='6489754794:AAEunRQpRZ5DWNqETweM76p8G-70iwVx4dM')
 
 
-   else:
-       try:
-           # clear the message we got from any non alphabets
-           text = re.sub(r"\W", "_", text)
-           # create the api link for the avatar based on http://avatars.adorable.io/
-           url = "https://api.adorable.io/avatars/285/{}.png".format(text.strip())
-           # reply with a photo to the name the user sent,
-           # note that you can send photos by url and telegram will fetch it for you
-           await bot.sendPhoto(chat_id=chat_id, photo=url, reply_to_message_id=msg_id,read_timeout=10, write_timeout=20, connect_timeout=10, pool_timeout=10)
-       except Exception:
-           # if things went wrong
-           await bot.sendMessage(chat_id=chat_id, text="There was a problem in the name you used, please enter different name", reply_to_message_id=msg_id)
+def start(update: Update, context):
+    """Starts the conversation and asks the user about their gender."""
+    reply_keyboard = [["Boy", "Girl", "Other"]]
 
-   return 'ok'
+    update.message.reply_text(
+        "Hi! My name is Professor Bot. I will hold a conversation with you. "
+        "Send /cancel to stop talking to me.\n\n"
+        "Are you a boy or a girl?",
+        reply_markup=ReplyKeyboardMarkup(
+            reply_keyboard, one_time_keyboard=True, input_field_placeholder="Boy or Girl?"
+        ),
+    )
 
-@app.route('/setwebhook', methods=['GET', 'POST'])
-async def set_webhook():
-    # we use the bot object to link the bot to our app which live
-    # in the link provided by URL
-    s = await bot.setWebhook('{URL}'.format(URL=URL, HOOK=TOKEN))
-    # something to let us know things work
-    if s:
-        return "webhook setup ok"
-    else:
-        return "webhook setup failed"
-    
-@app.route('/')
-def index():
-    return '.'
+    return GENDER
 
+def gender(update: Update, context):
+    """Stores the selected gender and asks for a photo."""
+    user = update.message.from_user
+    logger.info("Gender of %s: %s", user.first_name, update.message.text)
+    update.message.reply_text(
+        "I see! Please send me a photo of yourself, "
+        "so I know what you look like, or send /skip if you don't want to.",
+        reply_markup=ReplyKeyboardRemove(),
+    )
 
-if __name__ == '__main__':
-    # note the threaded arg which allow
-    # your app to have more than one thread
-    app.run(threaded=True)
+    return PHOTO
+
+def photo(update: Update, context):
+    """Stores the photo and asks for a location."""
+    user = update.message.from_user
+    photo_file = update.message.photo[-1].get_file()
+    photo_file.download("user_photo.jpg")
+    logger.info("Photo of %s: %s", user.first_name, "user_photo.jpg")
+    update.message.reply_text(
+        "Gorgeous! Now, send me your location please, or send /skip if you don't want to."
+    )
+
+    return LOCATION
+
+def skip_photo(update: Update, context):
+    """Skips the photo and asks for a location."""
+    user = update.message.from_user
+    logger.info("User %s did not send a photo.", user.first_name)
+    update.message.reply_text(
+        "I bet you look great! Now, send me your location please, or send /skip."
+    )
+
+    return LOCATION
+
+def location(update: Update, context):
+    """Stores the location and asks for some info about the user."""
+    user = update.message.from_user
+    user_location = update.message.location
+    logger.info(
+        "Location of %s: %f / %f", user.first_name, user_location.latitude, user_location.longitude
+    )
+    update.message.reply_text(
+        "Maybe I can visit you sometime! At last, tell me something about yourself."
+    )
+
+    return BIO
+
+def skip_location(update: Update, context):
+    """Skips the location and asks for info about the user."""
+    user = update.message.from_user
+    logger.info("User %s did not send a location.", user.first_name)
+    update.message.reply_text(
+        "You seem a bit paranoid! At last, tell me something about yourself."
+    )
+
+    return BIO
+
+def bio(update: Update, context):
+    """Stores the info about the user and ends the conversation."""
+    user = update.message.from_user
+    logger.info("Bio of %s: %s", user.first_name, update.message.text)
+    update.message.reply_text("Thank you! I hope we can talk again some day.")
+
+    return ConversationHandler.END
+
+def cancel(update: Update, context):
+    """Cancels and ends the conversation."""
+    user = update.message.from_user
+    logger.info("User %s canceled the conversation.", user.first_name)
+    update.message.reply_text(
+        "Bye! I hope we can talk again some day.", reply_markup=ReplyKeyboardRemove()
+    )
+
+    return ConversationHandler.END
+
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    if request.method == "POST":
+        update = Update.de_json(request.get_json(), bot)
+        application = Application.builder().token("6489754794:AAEunRQpRZ5DWNqETweM76p8G-70iwVx4dM").build()
+        conversation_handler = ConversationHandler(
+            entry_points=[CommandHandler("start", start)],
+            states={
+                GENDER: [MessageHandler(filters.Regex("^(Boy|Girl|Other)$"), gender)],
+                PHOTO: [MessageHandler(filters.PHOTO, photo), CommandHandler("skip", skip_photo)],
+                LOCATION: [MessageHandler(filters.LOCATION, location), CommandHandler("skip", skip_location)],
+                BIO: [MessageHandler(filters.TEXT & ~filters.COMMAND, bio)],
+            },
+            fallbacks=[CommandHandler("cancel", cancel)],
+        )
+        application.add_handler(conversation_handler)
+        application.process_update(update)
+    return jsonify({'status': 'ok'})
+
+if __name__ == "__main__":
+    app.run()
