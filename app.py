@@ -9,6 +9,9 @@ import asyncio
 global bot
 global TOKEN
 TOKEN = bot_token
+telegram.set_pool_size(10)
+telegram.set_pool_timeout(10)
+
 bot = telegram.Bot(token=TOKEN)
 
 
