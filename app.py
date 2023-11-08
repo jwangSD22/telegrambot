@@ -11,8 +11,9 @@ global bot
 global TOKEN
 TOKEN = bot_token
 
+my_request_params = telegram.request.HTTPXRequest(connection_pool_size=20,connect_timeout=20,pool_timeout=30)
 
-bot = telegram.Bot(token=TOKEN)
+bot = telegram.Bot(token=TOKEN,request=my_request_params)
 
 
 
