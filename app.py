@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from telegram.ext import Application, CommandHandler, ConversationHandler, MessageHandler, filters
-from telegram import Update, ReplyKeyboardRemove, ReplyKeyboardMarkup, ParseMode, InputTextMessageContent, InlineQueryResultArticle
+from telegram import Update, ReplyKeyboardRemove, ReplyKeyboardMarkup, InputTextMessageContent, InlineQueryResultArticle
 from uuid import uuid4
 import logging
 from html import escape
