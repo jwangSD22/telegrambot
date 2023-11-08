@@ -4,15 +4,16 @@ import telegram
 import re
 from telebot.credentials import bot_token, bot_user_name,URL
 import asyncio 
+import requests
 
 
 global bot
 global TOKEN
 TOKEN = bot_token
-telegram.set_pool_size(10)
-telegram.set_pool_timeout(10)
+
 
 bot = telegram.Bot(token=TOKEN)
+
 
 
 # start the flask app
@@ -39,7 +40,7 @@ async def respond():
        Welcome to coolAvatar bot, the bot is using the service from http://avatars.adorable.io/ to generate cool looking avatars based on the name you enter so please enter a name and the bot will reply with an avatar for your name.
        """
        # send the welcoming message
-       await bot.sendMessage(chat_id=chat_id, text=bot_welcome, reply_to_message_id=msg_id)
+       bot.sendMessage(chat_id=chat_id, text=bot_welcome, reply_to_message_id=msg_id)
 
 
    else:
@@ -50,10 +51,10 @@ async def respond():
            url = "https://api.adorable.io/avatars/285/{}.png".format(text.strip())
            # reply with a photo to the name the user sent,
            # note that you can send photos by url and telegram will fetch it for you
-           await bot.sendPhoto(chat_id=chat_id, photo=url, reply_to_message_id=msg_id)
+           bot.sendPhoto(chat_id=chat_id, photo=url, reply_to_message_id=msg_id)
        except Exception:
            # if things went wrong
-           await bot.sendMessage(chat_id=chat_id, text="There was a problem in the name you used, please enter different name", reply_to_message_id=msg_id)
+           bot.sendMessage(chat_id=chat_id, text="There was a problem in the name you used, please enter different name", reply_to_message_id=msg_id)
 
    return 'ok'
 
@@ -61,7 +62,7 @@ async def respond():
 async def set_webhook():
     # we use the bot object to link the bot to our app which live
     # in the link provided by URL
-    s = await bot.setWebhook('{URL}'.format(URL=URL, HOOK=TOKEN))
+    s = bot.setWebhook('{URL}'.format(URL=URL, HOOK=TOKEN))
     # something to let us know things work
     if s:
         return "webhook setup ok"
