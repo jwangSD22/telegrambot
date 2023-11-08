@@ -1,6 +1,7 @@
 # import everything
 from flask import Flask, request
 import telegram
+import re
 from telebot.credentials import bot_token, bot_user_name,URL
 global bot
 global TOKEN
@@ -11,9 +12,10 @@ bot = telegram.Bot(token=TOKEN)
 # start the flask app
 app = Flask(__name__)
 
-@app.route('/{}'.format(TOKEN), methods=['POST'])
+@app.route('/bot{}'.format(TOKEN), methods=['POST'])
 def respond():
    # retrieve the message in JSON and then transform it to Telegram object
+
    update = telegram.Update.de_json(request.get_json(force=True), bot)
 
    chat_id = update.message.chat.id
