@@ -1,4 +1,3 @@
-bot_token = "6489754794:AAEunRQpRZ5DWNqETweM76p8G-70iwVx4dM"
-bot_user_name = "jacksd2022bot"
-# URL = '127.0.0.1'
-URL = 'https://jacksd2022tgbot-f00d27f60217.herokuapp.com/'
+client = OpenAI(api_key="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")
+token='6977572928:AAGrqocZSnQVDx3_ZiZ3iKQTkJ7shaGLkB8'
+newURL = 'https://y9rz6bwqbk.loclx.io'
