@@ -4,6 +4,8 @@ from flask import Response
 import requests
 from openai import OpenAI
 import os
+from multiprocessing import Process
+
 
 # Give OpenAI Key
 
@@ -51,15 +53,22 @@ def send_message_telegram(chat_id, text):
     return response
 
 
-@app.route('/', methods=['GET', 'POST'])
+def process_message(msg):
+    chat_id, incoming_que = message_parser(msg)
+    answer = generate_answer(incoming_que)
+    send_message_telegram(chat_id, answer)
+
+@app.route('/', methods=['POST'])
 def index():
     if request.method == 'POST':
         msg = request.get_json()
         print(msg)
-        chat_id, incoming_que = message_parser(msg)
-        answer = generate_answer(incoming_que)
-        send_message_telegram(chat_id, answer)
-        
+
+        # Create a background process to handle the message
+        process = Process(target=process_message, args=(msg,))
+        process.start()
+
+        # Return an immediate response
         return 'ok'
     else:
         return "<h1>Something went wrong!</h1>"
