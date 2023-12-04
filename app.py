@@ -21,9 +21,9 @@ app = Flask(__name__)
 
 def generate_answer(question):
     completion = client.chat.completions.create(
-    model="gpt-3.5-turbo",
+    model="gpt-4",
     messages=[
-        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "system", "content": "You are a helpful healthcare assistant providing information to the layperson."},
         {"role": "user", "content": question}
     ]
     )
@@ -68,10 +68,11 @@ def index():
         process = Process(target=process_message, args=(msg,))
         process.start()
 
-        # Return an immediate response
+        # Return an immediate response to prevent heroku's h12 timeout limited to 30 seconds
+        # TG will keep sending responses to server if it doesn't get a 200 response 
         return 'ok'
     else:
-        return "<h1>Something went wrong!</h1>"
+        return "<h1>Jack's OPENAI TG BOT</h1>"
     
 @app.route('/setwebhook',methods=['GET'])
 def set_web_hook():
