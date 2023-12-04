@@ -76,9 +76,9 @@ def index():
     
 @app.route('/setwebhook',methods=['GET'])
 def set_web_hook():
-    response = requests.get(f'https://api.telegram.org/bot6977572928:AAGrqocZSnQVDx3_ZiZ3iKQTkJ7shaGLkB8/setWebhook?url={newURL}')
+    response = requests.get(f'https://api.telegram.org/bot{token}/setWebhook?url={newURL}')
     print(response)
-    return response
+    return 'webhook set'
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", debug=False, port=5000)
